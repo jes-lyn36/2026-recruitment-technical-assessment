@@ -25,10 +25,14 @@ public class BuildingLoader {
     public func fetchBuildings() async -> Result  {
         let httpResult = await client.get(from: url)
 
-        guard case .success((_, _)) = httpResult else {
+        guard case .success((_, let response)) = httpResult else {
             return .failure(Error.connectivity)
         }
         
+        guard response.statusCode == 200 else {
+            return .failure(Error.invalidData)
+        }
+
         return .success([])
     }
 }
