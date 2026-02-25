@@ -23,6 +23,12 @@ public class BuildingLoader {
     }
     
     public func fetchBuildings() async -> Result  {
-        fatalError("TODO")
+        let httpResult = await client.get(from: url)
+
+        guard case .success((_, _)) = httpResult else {
+            return .failure(Error.connectivity)
+        }
+        
+        return .success([])
     }
 }
