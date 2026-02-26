@@ -127,12 +127,96 @@ const new_entry = (entry: cookbookEntry) => {
 }
 
 // [TASK 3] ====================================================================
-// Endpoint that returns a summary of a recipe that corresponds to a query name
+// Endpoint that returns a summary of a recipe that corresponds to a query name.
 app.get("/summary", (req:Request, res:Request) => {
-  // TODO: implement me
-  res.status(500).send("not yet implemented!")
+  const recipeName = req.query.name as string;
+
+  res.json(recipe_summary(recipeName));
+  return;
 
 });
+
+/**
+ * Finds the recipe summary and returns it.
+ * Throw an error if the input recipe is invalid.
+ * @param {string} name - user input of the recipe's name.
+ * @returns {recipeSummary} - summary of the recipe.
+ */
+const recipe_summary = (name: string): recipeSummary => {
+  let baseIngredients = [];
+  let summaryCookTime = {
+    cookTime: 0
+  };
+
+  let entry = cookbook.find(existingEntry => existingEntry.name == name);
+  if (!entry || entry.type == "ingredient"){
+    throw HTTPError(400, "Invalid recipe: not in cookbook");
+  }
+
+  find_ingredients(entry, baseIngredients, summaryCookTime, 1)
+  
+  let summary = {
+    name: entry.name,
+    cookTime: summaryCookTime.cookTime,
+    ingredients: baseIngredients
+  };
+
+  return summary;
+}
+
+/**
+ * Recursively finds all base ingredients of a recipe.
+ * Returns if all ingredients are in the cookbook.
+ * Throw an error if the items needed by the recipe is invalid.
+ * @param {cookbookEntry} entry - items needed by the main recipe.
+ * @param {requiredItem[]} baseIngredients - main recipe's base ingredients.
+ * @param {summaryCookTime} summaryCookTime - recipe's total cooking time.
+ * @param {number} quantity - number of current items needed. 
+ * @returns 
+ */
+const find_ingredients = (
+  entry: cookbookEntry,
+  baseIngredients: requiredItem[], 
+  summaryCookTime: summaryCookTime,
+  quantity: number) => {
+
+  // If it's an recipe, go through it to find its base ingredients.
+  if (entry.type == "recipe") {
+    for (let item of entry.requiredItems) {
+      let cookbookEntry = cookbook.find(
+        existingEntry => existingEntry.name == item.name
+      );
+      if (!cookbookEntry){
+        throw HTTPError(400, "Invalid required items: not in cookbook");
+      }
+
+      find_ingredients(
+        cookbookEntry, 
+        baseIngredients, 
+        summaryCookTime, 
+        item.quantity * quantity
+      );
+    }
+
+  //If it's an ingredient, save it as a base ingredient and add the cookTime.
+  } else if (entry.type == "ingredient") {
+    let baseIngredient = baseIngredients.find(
+      existingIngredient => existingIngredient.name == entry.name
+    );
+    if (baseIngredient) {
+      baseIngredient.quantity += quantity;
+    } else {
+      baseIngredients.push({
+        name: entry.name,
+        quantity: quantity
+      });
+    }
+
+    summaryCookTime.cookTime += entry.cookTime * quantity
+  }
+
+  return;
+}
 
 // =============================================================================
 // ==== DO NOT TOUCH ===========================================================
