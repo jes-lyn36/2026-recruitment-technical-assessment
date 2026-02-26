@@ -1,4 +1,5 @@
 import express, { Request, Response } from "express";
+import HTTPError from 'http-errors';
 
 // ==== Type Definitions, feel free to add or modify ==========================
 interface cookbookEntry {
@@ -30,7 +31,6 @@ interface recipeSummary {
 interface summaryCookTime {
   cookTime: number;
 }
-
 // =============================================================================
 // ==== HTTP Endpoint Stubs ====================================================
 // =============================================================================
@@ -38,7 +38,8 @@ const app = express();
 app.use(express.json());
 
 // Store your recipes here!
-const cookbook: any = null;
+// Initialized cookbook as an array to store recipes and ingredients.
+const cookbook: cookbookEntry[] = [];
 
 // Task 1 helper (don't touch)
 app.post("/parse", (req:Request, res:Response) => {
@@ -81,12 +82,49 @@ const parse_handwriting = (recipeName: string): string | null => {
 }
 
 // [TASK 2] ====================================================================
-// Endpoint that adds a CookbookEntry to your magical cookbook
+// Endpoint that adds a CookbookEntry to your magical cookbook.
 app.post("/entry", (req:Request, res:Response) => {
-  // TODO: implement me
-  res.status(500).send("not yet implemented!")
+  new_entry(req.body);
+  res.json({});
+  return;
 
 });
+
+/**
+ * Takes the cookbook entry and adds it to the cookbook if it's valid.
+ * Throw an error with a corresponding message if entry is invalid.
+ * @param {cookbookEntry} entry - user entry of the cookbook. 
+ */
+const new_entry = (entry: cookbookEntry) => {
+  // Checks if the name is unique.
+  if (cookbook.some(existingEntry => existingEntry.name == entry.name)) {
+    throw HTTPError(400, "Invalid entry: existing entry");
+  }
+  
+  // Checks validity for type "recipe" and "ingredient".
+  if (entry.type == "recipe"){
+    // Check if required items more than one element per name.
+    let requiredItemNames = entry.requiredItems.map(
+      requiredItem => requiredItem.name
+    );
+    let duplicateNames = requiredItemNames.filter(
+      (item, index) => requiredItemNames.indexOf(item) !== index
+    );
+
+    if (duplicateNames.length > 0) {
+      throw HTTPError(400, "Invalid entry: require duplicate items");
+    }
+
+  } else if (entry.type == "ingredient") {
+    if (entry.cookTime < 0){
+      throw HTTPError(400, "Invalid entry: cooktime is less than 0");
+    }
+  } else {
+    throw HTTPError(400, "Invalid type: type is not ingredient or recipe");
+  }
+
+  cookbook.push(entry);
+}
 
 // [TASK 3] ====================================================================
 // Endpoint that returns a summary of a recipe that corresponds to a query name
