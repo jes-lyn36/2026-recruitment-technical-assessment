@@ -159,3 +159,148 @@ describe("Task 3", () => {
     });
   });
 });
+
+
+describe("Task 3_recursive", () => {
+  describe("GET /summary: recursion calls", () => {
+    const postEntry = async (data) => {
+      return await request("http://localhost:8080").post("/entry").send(data);
+    };
+
+    const getTask3 = async (name) => {
+      return await request("http://localhost:8080").get(
+        `/summary?name=${name}`
+      );
+    };
+
+    it("Get invalid recipe", async () => {
+      const resp = await getTask3("Invalid Recipe");
+      expect(resp.status).toBe(400);
+    });
+
+    it("Get ingredient", async () => {
+      const resp = await postEntry({
+        type: "ingredient",
+        name: "Tomato1",
+        cookTime: 2,
+    });
+      expect(resp.status).toBe(200);
+
+      const resp8 = await getTask3("Tomato1");
+      expect(resp8.status).toBe(400);
+    });
+
+    it("Missing item, recursiive calls", async () => {
+      const skibidiSpaghetti = {
+        type: "recipe",
+        name: "Skibidi Spaghetti1",
+        requiredItems: [
+          {
+            name: "Meatball1",
+            quantity: 3
+          },
+          {
+            name: "Pasta1",
+            quantity: 1
+          },
+          {
+            name: "Tomato1",
+            quantity: 2
+          }
+        ]
+      };
+      const resp1 = await postEntry(skibidiSpaghetti);
+      expect(resp1.status).toBe(200);
+
+      const meatball = {
+        type: "recipe",
+        name: "Meatball1",
+        requiredItems: [
+          {
+            name: "Beef1",
+            quantity: 2
+          },
+          {
+            name: "Egg1",
+            quantity: 1
+          }
+        ]
+      };
+      const resp2 = await postEntry(meatball);
+      expect(resp2.body).toStrictEqual({});
+      expect(resp2.status).toBe(200);
+
+      const beef = {
+        type: "ingredient",
+        name: "Beef1",
+        cookTime: 5,
+      };
+      const resp3 = await postEntry(beef);
+      expect(resp3.status).toBe(200);
+
+      const egg = {
+        type: "ingredient",
+        name: "Egg1",
+        cookTime: 3,
+      };
+      const resp4 = await postEntry(egg);
+      expect(resp4.status).toBe(200);
+
+      const pasta = {
+        type: "recipe",
+        name: "Pasta1",
+        requiredItems: [
+          {
+            name: "Flour1",
+            quantity: 3
+          },
+          {
+            name: "Egg1",
+            quantity: 1
+          }
+        ]
+      };
+      const resp5 = await postEntry(pasta);
+      expect(resp5.status).toBe(200);
+
+
+      const resp6 = await getTask3("Skibidi Spaghetti1");
+      expect(resp6.status).toBe(400);
+    });
+
+    it("Valid input", async () => {
+      const flour = {
+        type: "ingredient",
+        name: "Flour1",
+        cookTime: 0,
+    };
+      const resp1 = await postEntry(flour);
+      expect(resp1.status).toBe(200);
+
+      const resp2 = await getTask3("Skibidi Spaghetti1");
+      expect(resp2.status).toBe(200);
+      expect(resp2.body).toStrictEqual({
+        name: "Skibidi Spaghetti1",
+        cookTime: 46,
+        ingredients: [
+          {
+            name: "Beef1",
+            quantity: 6
+          },
+          {
+            name: "Egg1",
+            quantity: 4
+          },
+          {
+            name: "Flour1",
+            quantity: 3
+          },
+          {
+            name: "Tomato1",
+            quantity: 2
+          }
+        ]
+      });
+    });
+  });
+});
