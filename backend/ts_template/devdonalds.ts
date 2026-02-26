@@ -4,6 +4,8 @@ import express, { Request, Response } from "express";
 interface cookbookEntry {
   name: string;
   type: string;
+  requiredItems?: requiredItem[];
+  cookTime?: number;
 }
 
 interface requiredItem {
@@ -16,6 +18,16 @@ interface recipe extends cookbookEntry {
 }
 
 interface ingredient extends cookbookEntry {
+  cookTime: number;
+}
+
+interface recipeSummary {
+  name: string;
+  cookTime: number;
+  ingredients: requiredItem[];
+}
+
+interface summaryCookTime {
   cookTime: number;
 }
 
@@ -43,10 +55,29 @@ app.post("/parse", (req:Request, res:Response) => {
 });
 
 // [TASK 1] ====================================================================
-// Takes in a recipeName and returns it in a form that 
+/**
+ * Takes in a recipeName and returns it in a legible form. 
+ * @param {string} recipeName - user input of the recipe name.
+ * @returns {string} - the parsed recipe name.
+ * @returns {null} - parsed recipe name is an emptry string.
+ */
 const parse_handwriting = (recipeName: string): string | null => {
-  // TODO: implement me
-  return recipeName
+  // Make all characters either letters or whitespace, loops recipeName once.
+  recipeName = recipeName.replace(/([-_]|[^a-z ])/ig, character => {
+    return (character === "-" || character === "_") ? " " : "";
+  });
+
+  // Make every first word uppercase and the rest lowercase.
+  recipeName = recipeName
+    .toLowerCase()
+    .split(" ")
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+
+  // Remove any duplicate whitespaces.
+  recipeName = recipeName.trim().replace(/\s+/g, " ");
+
+  return recipeName || null;
 }
 
 // [TASK 2] ====================================================================
